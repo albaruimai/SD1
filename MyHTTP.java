@@ -11,17 +11,19 @@ public class MyHTTP{
 		/*
 		* Descriptores de socket servidor y de socket con el cliente
 		*/
-		String puerto="9998";
+		String puerto="";
 
 		try
 		{
-			/*
-			if (args.length < 1) {
-				System.out.println("Debe indicar el puerto de escucha del servidor");
+			
+			if (args.length < 3) {
+				System.out.println("Debe indicar el puerto de escucha del servidor, ip de la pasarela y puerto de la pasarela");
 				System.out.println("$./Servidor puerto_servidor");
 				System.exit (1);
 			}
-			puerto = args[0];*/
+			puerto = args[0];
+			String ip=args[1];
+			String p_ip=args[2];
 			ServerSocket skServidor = new ServerSocket(Integer.parseInt(puerto));
 		    System.out.println("Escucho el puerto " + puerto);
 	
@@ -36,7 +38,7 @@ public class MyHTTP{
 				Socket skCliente = skServidor.accept(); // Crea objeto
 		        System.out.println("Sirviendo cliente...");
 
-		        Thread t = new Hilo_MyHTTP(skCliente);
+		        Thread t = new Hilo_MyHTTP(skCliente, ip, p_ip);
 		        t.start();
 			}
 		}

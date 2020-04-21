@@ -1,17 +1,20 @@
 import java.lang.Exception;
 import java.net.Socket;
 import java.io.*;
+import java.util.*;
 
 public class Hilo_MyHTTP extends Thread {
 
 	private Socket skCliente;
-	private DataInputStream input=null;
-	private DataOutputStream out=null;
+	private String gat;
+	private String p_gat;
 
 	
-	public Hilo_MyHTTP(Socket p_cliente)
+	public Hilo_MyHTTP(Socket p_cliente, String gat, String p_gat)
 	{
 		this.skCliente = p_cliente;
+		this.gat=gat;
+		this.p_gat=p_gat;
 	}
 	
 	/*
@@ -28,7 +31,7 @@ public class Hilo_MyHTTP extends Thread {
 		{
 			InputStream aux = p_sk.getInputStream();
 			DataInputStream flujo = new DataInputStream( aux );
-			input= flujo;
+			
 			p_Datos = new String();
 
 			do
@@ -62,6 +65,40 @@ public class Hilo_MyHTTP extends Thread {
 		}
       return p_Datos;
 	}
+
+
+
+	public String leeSocket2 (Socket p_sk, String p_Datos)
+	{
+        
+		byte[] lista= new byte[1000];
+		byte tempb2 = 0;
+		int i = 0;
+		try
+		{
+			InputStream aux = p_sk.getInputStream();
+			DataInputStream flujo = new DataInputStream( aux );
+			p_Datos = new String();
+
+			do
+			{
+				tempb2 = flujo.readByte();	
+                lista[i] = tempb2;
+                i++;
+
+			}while(flujo.available() > 0);
+
+
+			p_Datos= new String (lista, "UTF-8");
+			
+		}
+		catch (Exception e)
+		{
+			System.out.println("Error: " + e.toString());
+		}
+      return p_Datos;
+	}
+
 
 	/*
 	* Escribe dato en el socket cliente. Devuelve numero de bytes escritos,
@@ -156,7 +193,8 @@ public class Hilo_MyHTTP extends Thread {
 							
 						//	out=new DataOutputStream(skCliente.getOutputStream());
 							try{String petic=trozos[2].substring(0, trozos[2].lastIndexOf(" "));
-							Socket gate=new Socket("localhost", Integer.parseInt("9997"));
+							Socket gate=new Socket(gat, Integer.parseInt(p_gat));
+							System.out.println("Enviando peticion al Gateway");
 								OutputStream aux = gate.getOutputStream();
 								DataOutputStream esc= new DataOutputStream(aux);
 								esc.writeByte(2);
@@ -169,8 +207,39 @@ public class Hilo_MyHTTP extends Thread {
 								esc.flush();
 
 								Cadena="";
-								System.out.println(this.leeSocket(gate, Cadena).substring(2));
+								Cadena=this.leeSocket2(gate, Cadena).replaceAll("\u0000.*", "");
+								System.out.println(Cadena);
 								
+								if(Cadena.equals("")||Cadena.charAt(Cadena.length()-1)==21){
+									System.out.println("Informacion perdida");
+									this.escribeSocket(skCliente, "fail.html");
+									gate.close();
+									skCliente.close();
+								}
+								
+								if(Cadena.equals("")||Cadena.charAt(Cadena.length()-1)==16){
+									System.out.println("Error: URL no valida");
+									this.escribeSocket(skCliente, "400.html");
+									gate.close();
+									skCliente.close();
+								}
+
+								if(Cadena.equals("")||Cadena.charAt(Cadena.length()-1)==19){
+									System.out.println("Error: no se ha podido conectar con el Procesador");
+									this.escribeSocket(skCliente, "503.html");
+									gate.close();
+									skCliente.close();
+								}
+
+
+
+								
+							}
+							catch (java.net.ConnectException f2)
+							{
+								System.out.println("Error: No se ha podido conectar con el Gateway");
+								this.escribeSocket(skCliente, "409.html");
+								skCliente.close();
 							}
 							catch (Exception e)
 							{

@@ -1,7 +1,7 @@
 import java.lang.Exception;
 import java.net.Socket;
 import java.io.*;
-import java.util.Arrays;
+import java.util.*;
 
 public class Hilo_Gateway extends Thread {
 
@@ -84,60 +84,123 @@ public class Hilo_Gateway extends Thread {
 			}
 
 			if(mini[0].equals("exp")){
-			cad=mini[1].substring(0,4);
+			cad=mini[1];
 			}
 		}
 
+		if(nombre.equals("")||tarjeta.equals("")||imp.equals("")||cvv.equals("")||nombre.equals("")){
+			String respuesta="Error: URL no valida";
+				System.out.println(respuesta);
+			try{
+				OutputStream aux = p_sk.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
 
-		FileReader read=null;
-		BufferedReader read2=null;
-		try {
-		read=new FileReader("Bines.txt");
-		read2=new BufferedReader(read);
-		
-		
-			while (proc.equals("")) {
+//16 es para url no valida
 
-				String linea=read2.readLine();
-				String[] fila=linea.split("#");
-				if(fila[0].charAt(0)==tarjeta.charAt(0)){
-					proc=fila[1];
+
+				esc.writeByte(16);/*
+				for(int j=0;j<respuesta.length();j++){
+					esc.writeUTF(Character.toString(respuesta.charAt(j)));
+				}*/
+				esc.flush();
+				p_sk.close();
+			}
+			catch (Exception e)
+			{
+				System.out.println("Error: " + e.toString());
+			}
+
+		}
+		else{
+			FileReader read=null;
+			BufferedReader read2=null;
+			try {
+			read=new FileReader("Bines.txt");
+			read2=new BufferedReader(read);
+			
+			
+				while (proc.equals("")) {
+
+					String linea=read2.readLine();
+					String[] fila=linea.split("#");
+					if(fila[0].charAt(0)==tarjeta.charAt(0)){
+						proc=fila[1];
+					}
 				}
 			}
-		}catch (Exception e5) {
-          	System.out.println("Error: " + e5.toString());
+			
+			catch (Exception e5) {
+				System.out.println("Error: " + e5.toString());
+			}
+
+			System.out.println(proc);
+
+			read=null;
+			read2=null;
+			try {
+			read=new FileReader("Procesadores.txt");
+			read2=new BufferedReader(read);
+			
+			
+				while (ip.equals("")) {
+
+					String linea=read2.readLine();
+					String[] fila=linea.split("#");
+					if(fila[0].charAt(0)==proc.charAt(0)){
+						host=fila[1];
+						ip=fila[2];
+					}
+				}
+			}catch (Exception e6) {
+				System.out.println("Error: " + e6.toString());
+			}
+
+			System.out.println(host);
+			System.out.println(ip);
+
+
+			try{
+				Socket proces=new Socket(host, Integer.parseInt(ip));
+				String cadena=new String("auth+"+proc+"+"+imp);
+				OutputStream aux = proces.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+				for(int j=0;j<cadena.length();j++){
+					esc.writeBytes(Character.toString(cadena.charAt(j)));
+				}
+				esc.flush();
+			}
+			catch (java.net.ConnectException e7) {
+				String respuesta="Error: no se ha podido conectar con el Procesador";
+				System.out.println(respuesta);
+				try{
+					OutputStream aux = p_sk.getOutputStream();
+					DataOutputStream esc= new DataOutputStream(aux);
+					esc.writeByte(19);
+					/*
+					for(int j=0;j<respuesta.length();j++){
+						esc.writeBytes(Character.toString(respuesta.charAt(j)));
+					}*/
+					esc.flush();
+					p_sk.close();
+				}
+				catch (Exception e)
+				{
+					System.out.println("Error: " + e.toString());
+				}
+			}catch (Exception e2)
+			{
+				System.out.println("Error: " + e2.toString());
+			}
 		}
 
-		System.out.println(proc);
+		
 
 
 //Hasta aqui hemos separado la informacion y visto que procesador pertocaria a la tarjeta de credito
 //Ahora Buscamos el host e ip del procesador en el archivo
 
 
-		read=null;
-		read2=null;
-		try {
-		read=new FileReader("Procesadores.txt");
-		read2=new BufferedReader(read);
 		
-		
-			while (ip.equals("")) {
-
-				String linea=read2.readLine();
-				String[] fila=linea.split("#");
-				if(fila[0].charAt(0)==proc.charAt(0)){
-					host=fila[1];
-					ip=fila[2];
-				}
-			}
-		}catch (Exception e6) {
-          	System.out.println("Error: " + e6.toString());
-		}
-
-		System.out.println(host);
-		System.out.println(ip);
-
 		return ;
 
 	}
@@ -181,86 +244,6 @@ public class Hilo_Gateway extends Thread {
 		String[] datos=p_Datos.split("&");
 
 		proc=datos[0].split("=")[1].replaceAll("\u0000.*", "");
-		proc=proc.substring(0, proc.length()-2);
-		FileReader read=null;
-		BufferedReader read2=null;
-		try {
-		read=new FileReader("Procesadores.txt");
-		read2=new BufferedReader(read);
-		
-		String linea=read2.readLine();
-			while (ip.equals("")&&linea!=null) {
-
-				
-				String[] fila=linea.split("#");
-				if(fila[0].charAt(0)==proc.charAt(0)){
-					host=fila[1];
-					ip=fila[2];
-				}
-				linea=read2.readLine();
-			}
-		}catch (Exception e6) {
-          	System.out.println("Error: " + e6.toString());
-		}
-
-
-		//Si pedimos informacion de un procesador que no existe
-		if(ip.equals("")){}
-
-		if(datos.length==1&&!ip.equals("")){
-			try{
-				Socket proces=new Socket(host, Integer.parseInt(ip));
-				String cadena=new String("est+"+proc+"+get");
-				OutputStream aux = proces.getOutputStream();
-				DataOutputStream esc= new DataOutputStream(aux);
-			//	esc.writeByte(2);
-				esc.writeUTF(cadena);
-				esc.writeByte(3);
-				esc.writeByte(this.pedirLRC(cadena));
-				esc.flush();
-				
-			}
-			catch (Exception e)
-			{
-				System.out.println("Error: " + e.toString());
-			}
-		}
-
-
-
-		if(datos.length==2&&!ip.equals("") ){
-			String info=datos[1].split("=")[1].replaceAll("\u0000.*", "");
-			info=info.substring(0, info.length()-2);
-			try{
-				Socket proces2=new Socket(host, Integer.parseInt(ip));
-				String cadena2=new String("est+"+ proc +"+"+info + "+set");
-				OutputStream aux = proces2.getOutputStream();
-				DataOutputStream esc= new DataOutputStream(aux);
-		//		esc.writeByte(2);
-				esc.writeUTF(cadena2);
-				esc.writeByte(3);
-				esc.writeByte(this.pedirLRC(cadena2));
-				esc.flush();
-				
-			}
-			catch (Exception e2)
-			{
-				System.out.println("Error: " + e2.toString());
-			}
-		}
-
-	}
-
-
-
-	public void minimo(Socket p_sk, String p_Datos){
-		String proc="";
-		String host="";
-		String ip="";
-		String[] datos=p_Datos.split("&");
-
-		proc=datos[0].split("=")[1].replaceAll("\u0000.*", "");
-		proc=proc.substring(0, proc.length()-2);
 		FileReader read=null;
 		BufferedReader read2=null;
 		try {
@@ -285,20 +268,35 @@ public class Hilo_Gateway extends Thread {
 
 		//Si pedimos informacion de un procesador que no existe
 		if(ip.equals("")){
-			
+			String respuesta="Error: no se ha podido conectar con el Procesador";
+			System.out.println(respuesta);
+			try{
+				OutputStream aux = p_sk.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+				esc.writeByte(19);
+				/*
+				for(int j=0;j<respuesta.length();j++){
+					esc.writeBytes(Character.toString(respuesta.charAt(j)));
+				}*/
+				esc.flush();
+				p_sk.close();
+			}
+			catch (Exception e)
+			{
+				System.out.println("Error: " + e.toString());
+			}
 		}
 
-
-		//getter
 		if(datos.length==1&&!ip.equals("")){
 			try{
 				Socket proces=new Socket(host, Integer.parseInt(ip));
-				String cadena=new String("min+" + proc +"+get");
-				System.out.println(cadena.length());
+				String cadena=new String("est+"+proc+"+get");
 				OutputStream aux = proces.getOutputStream();
 				DataOutputStream esc= new DataOutputStream(aux);
-			//	esc.writeByte(2);
-				esc.writeUTF(cadena);
+				esc.writeByte(2);
+				
+					esc.writeUTF(cadena);
+				
 				esc.writeByte(3);
 				esc.writeByte(this.pedirLRC(cadena));
 				esc.flush();
@@ -311,19 +309,20 @@ public class Hilo_Gateway extends Thread {
 		}
 
 
-		//Setter
+
 		if(datos.length==2&&!ip.equals("") ){
 			String info=datos[1].split("=")[1].replaceAll("\u0000.*", "");
-			info=info.substring(0, info.length()-2);
 			try{
 				Socket proces2=new Socket(host, Integer.parseInt(ip));
-				String cadena2=new String("min+"+ proc +"+"+ info + "+set");
+				String cadena2=new String("est+"+ proc +"+"+info + "+set");
 				OutputStream aux = proces2.getOutputStream();
 				DataOutputStream esc= new DataOutputStream(aux);
 		//		esc.writeByte(2);
-				esc.writeUTF(cadena2);
-				esc.writeByte(3);
-				esc.writeByte(this.pedirLRC(cadena2));
+				for(int j=0;j<cadena2.length();j++){
+					esc.writeBytes(Character.toString(cadena2.charAt(j)));
+				}
+		//		esc.writeByte(3);
+		//		esc.writeByte(this.pedirLRC(cadena2));
 				esc.flush();
 				
 			}
@@ -332,21 +331,18 @@ public class Hilo_Gateway extends Thread {
 				System.out.println("Error: " + e2.toString());
 			}
 		}
-		System.out.println(host);
-		System.out.println(ip);
+
 	}
 
 
 
-	public void maximo(Socket p_sk, String p_Datos){
+	public void minimo(Socket p_sk, String p_Datos){
 		String proc="";
 		String host="";
 		String ip="";
 		String[] datos=p_Datos.split("&");
 
-
 		proc=datos[0].split("=")[1].replaceAll("\u0000.*", "");
-		proc=proc.substring(0, proc.length()-2);
 		FileReader read=null;
 		BufferedReader read2=null;
 		try {
@@ -370,7 +366,130 @@ public class Hilo_Gateway extends Thread {
 
 
 		//Si pedimos informacion de un procesador que no existe
-		if(ip.equals("")){}
+		if(ip.equals("")){
+			String respuesta="Error: no se ha podido conectar con el Procesador";
+			System.out.println(respuesta);
+			try{
+				OutputStream aux = p_sk.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+				esc.writeByte(19);
+				/*
+				for(int j=0;j<respuesta.length();j++){
+					esc.writeBytes(Character.toString(respuesta.charAt(j)));
+				}*/
+				esc.flush();
+				p_sk.close();
+			}
+			catch (Exception e)
+			{
+				System.out.println("Error: " + e.toString());
+			}
+		}
+
+
+		//getter
+		if(datos.length==1&&!ip.equals("")){
+			try{
+				Socket proces=new Socket(host, Integer.parseInt(ip));
+				String cadena=new String("min+" + proc +"+get");
+				System.out.println(cadena.length());
+				OutputStream aux = proces.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+			//	esc.writeByte(2);
+				for(int j=0;j<cadena.length();j++){
+					esc.writeBytes(Character.toString(cadena.charAt(j)));
+				}
+		//		esc.writeByte(3);
+	//			esc.writeByte(this.pedirLRC(cadena));
+				esc.flush();
+				
+			}
+			catch (Exception e)
+			{
+				System.out.println("Error: " + e.toString());
+			}
+		}
+
+
+		//Setter
+		if(datos.length==2&&!ip.equals("") ){
+			String info=datos[1].split("=")[1].replaceAll("\u0000.*", "");
+			info=info.substring(0, info.length()-2);
+			try{
+				Socket proces2=new Socket(host, Integer.parseInt(ip));
+				String cadena2=new String("min+"+ proc +"+"+ info + "+set");
+				OutputStream aux = proces2.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+		//		esc.writeByte(2);
+				for(int j=0;j<cadena2.length();j++){
+					esc.writeBytes(Character.toString(cadena2.charAt(j)));
+				}
+	//			esc.writeByte(3);
+	//			esc.writeByte(this.pedirLRC(cadena2));
+				esc.flush();
+				
+			}
+			catch (Exception e2)
+			{
+				System.out.println("Error: " + e2.toString());
+			}
+		}
+		System.out.println(host);
+		System.out.println(ip);
+	}
+
+
+
+	public void maximo(Socket p_sk, String p_Datos){
+		String proc="";
+		String host="";
+		String ip="";
+		String[] datos=p_Datos.split("&");
+
+
+		proc=datos[0].split("=")[1].replaceAll("\u0000.*", "");
+		FileReader read=null;
+		BufferedReader read2=null;
+		try {
+		read=new FileReader("Procesadores.txt");
+		read2=new BufferedReader(read);
+		
+		String linea=read2.readLine();
+			while (ip.equals("")&&linea!=null) {
+
+				
+				String[] fila=linea.split("#");
+				if(fila[0].charAt(0)==proc.charAt(0)){
+					host=fila[1];
+					ip=fila[2];
+				}
+				linea=read2.readLine();
+			}
+		}catch (Exception e6) {
+          	System.out.println("Error: " + e6.toString());
+		}
+
+
+		//Si pedimos informacion de un procesador que no existe
+		if(ip.equals("")){
+			String respuesta="Error: no se ha podido conectar con el Procesador";
+			System.out.println(respuesta);
+			try{
+				OutputStream aux = p_sk.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+				esc.writeByte(19);
+				/*
+				for(int j=0;j<respuesta.length();j++){
+					esc.writeBytes(Character.toString(respuesta.charAt(j)));
+				}*/
+				esc.flush();
+				p_sk.close();
+			}
+			catch (Exception e)
+			{
+				System.out.println("Error: " + e.toString());
+			}
+		}
 
 
 		//getter
@@ -383,9 +502,11 @@ public class Hilo_Gateway extends Thread {
 				OutputStream aux = proces.getOutputStream();
 				DataOutputStream esc= new DataOutputStream(aux);
 			//	esc.writeByte(2);
-				esc.writeUTF(cadena);
-				esc.writeByte(3);
-				esc.writeByte(this.pedirLRC(cadena));
+				for(int j=0;j<cadena.length();j++){
+					esc.writeBytes(Character.toString(cadena.charAt(j)));
+				}
+		//		esc.writeByte(3);
+		//		esc.writeByte(this.pedirLRC(cadena));
 				esc.flush();
 				
 			}
@@ -406,9 +527,11 @@ public class Hilo_Gateway extends Thread {
 				OutputStream aux = proces2.getOutputStream();
 				DataOutputStream esc= new DataOutputStream(aux);
 		//		esc.writeByte(2);
-				esc.writeUTF(cadena2);
-				esc.writeByte(3);
-				esc.writeByte(this.pedirLRC(cadena2));
+				for(int j=0;j<cadena2.length();j++){
+					esc.writeBytes(Character.toString(cadena2.charAt(j)));
+				}
+		//		esc.writeByte(3);
+		//		esc.writeByte(this.pedirLRC(cadena2));
 				esc.flush();
 				
 			}
@@ -421,11 +544,48 @@ public class Hilo_Gateway extends Thread {
 
 //Para pasarle la pagina que imprima todos los datos de los procesadores
 
-	public void index(Socket p_sk, String p_Datos){
+	public void index(Socket p_sk){
+		ArrayList<Character> procs= new ArrayList<Character>();
+		try{
+			FileReader read=new FileReader("Procesadores.txt");
+			BufferedReader read2=new BufferedReader(read);
+			int i=0;
+			
+			String linea=read2.readLine();
+				while (linea!=null) {
+					String[] fila=linea.split("#");
+					procs.add(fila[0].charAt(0));
+					i++;
+					linea=read2.readLine();
+				}
+		}
+		catch(Exception e){
+			System.out.println("Error: " + e.toString());
+
+		}
+
+		for(int j=0;j<procs.size();j++){
+
+		}
 
 
 	}
 
+
+	public int pedirLRC(String petic){
+		byte [] binaryValue = petic.getBytes();
+		byte lrc = 0x00;
+
+		for(byte b : binaryValue) {
+
+			lrc ^= b;
+		}
+
+		// lrc msut be between 48 to 95
+		lrc %= 48; 
+		lrc += 48;
+		return lrc;
+	}
 
 
 	public boolean validarLRC(String petic, char val){
@@ -460,17 +620,16 @@ public class Hilo_Gateway extends Thread {
         try {
 
 			Cadena = this.leeSocket (skCliente, Cadena);
-
-
+			Cadena=Cadena.replaceAll("\u0000.*", "");
+			String pet="";
 			System.out.println(Cadena);
-			if(Cadena.length>3){
-				char lrc="";
-
-				String pet=Cadena.substring(1).replaceAll("\u0000.*", "").equals("");
-				lrc=pet.charAt(pet.length()-1);
+			if(Cadena.length()>3){
+				
+				pet=Cadena.substring(1);
+				char lrc=pet.charAt(pet.length()-1);
 				pet=pet.substring(0,pet.length()-2);
 
-				todo=validarLRC(pet,lrc);
+				todo=this.validarLRC(pet,lrc);
 
 			}
 			
@@ -488,10 +647,10 @@ public class Hilo_Gateway extends Thread {
 								}
 
 */
-			String partes[]=Cadena.split("\\?");
+			String partes[]=pet.split("\\?");
 
 
-			String tipo=partes[0].substring(1);
+			String tipo=partes[0];
 
 
 
@@ -510,16 +669,19 @@ public class Hilo_Gateway extends Thread {
 						}
 						else{
 							if(tipo.equals("index")){
-								this.index(skCliente, partes[1]);
+								this.index(skCliente);
 							}else{
 
+								String respuesta="Error: URL no valida";
+								System.out.println(respuesta);
 								try{
 									OutputStream aux = skCliente.getOutputStream();
 									DataOutputStream esc= new DataOutputStream(aux);
-									esc.flush();
-								//	esc.writeByte(2);
-									esc.writeUTF("Peticion no permitida");
-								//	esc.writeByte(3);
+									esc.writeByte(16);
+								/*	for(int j=0;j<respuesta.length();j++){
+										esc.writeBytes(Character.toString(respuesta.charAt(j)));
+									}*/
+								//	esc.writeUTF(respuesta);
 									esc.flush();
 								}
 								catch (Exception e3) {
@@ -535,12 +697,12 @@ public class Hilo_Gateway extends Thread {
 
 			}else{
 				try{
+					String respuesta="Se ha perdido informacion";
 					OutputStream aux2 = skCliente.getOutputStream();
 					DataOutputStream esc2= new DataOutputStream(aux2);
-					esc2.flush();
-				//	esc.writeByte(2);
-					esc2.writeUTF("Se ha perdido informacion");
-				//	esc.writeByte(3);
+					esc2.writeByte(21);
+				//	esc2.writeUTF("Se ha perdido informacion");
+				
 					esc2.flush();
 				}
 				catch (Exception e3) {
