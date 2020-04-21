@@ -20,7 +20,7 @@ public class Hilo_Gateway extends Thread {
 	public String leeSocket (Socket p_sk, String p_Datos)
 	{
         
-		byte[] lista= new byte[9999];
+		byte[] lista= new byte[1000];
 		byte tempb2 = 0;
 		int i = 0;
 		try
@@ -53,28 +53,9 @@ public class Hilo_Gateway extends Thread {
 	* Escribe dato en el socket cliente. Devuelve numero de bytes escritos,
 	* o -1 si hay error.
 	*/
-	public void escribeSocket (Socket p_sk, String p_Datos)
-	{
-		try
-		{
-
-			OutputStream aux = p_sk.getOutputStream();
-			PrintWriter esc= new PrintWriter(aux);/*
-			esc.println("HTTP/1.1 200 OK");
-			esc.println("Content-Type: text/html");
-			esc.println("\r\n");
-			esc.println("<html><body><h1>HOLAAAAA</h1></body></html>");*/
-            System.out.println("HOLAAAAA");
-			esc.flush();
-		}
-		catch (Exception e)
-		{
-			System.out.println("Error: " + e.toString());
-		}
-		return;
-	}
 	
-	public boolean autorizar(Socket p_sk, String p_Datos){
+	
+	public void autorizar(Socket p_sk, String p_Datos){
 		boolean auto=false;
 		String host="";
 		String ip="";
@@ -157,7 +138,7 @@ public class Hilo_Gateway extends Thread {
 		System.out.println(host);
 		System.out.println(ip);
 
-		return auto;
+		return ;
 
 	}
 
@@ -187,48 +168,385 @@ public class Hilo_Gateway extends Thread {
             // if lowercase character 
             // then just print 
             else
-            result=result.concat(String.valueOf(str[i])); 
+            	result=result.concat(String.valueOf(str[i])); 
         } 
 		return result;
     }    
+
+
+	public void estado(Socket p_sk, String p_Datos){
+		String proc="";
+		String host="";
+		String ip="";
+		String[] datos=p_Datos.split("&");
+
+		proc=datos[0].split("=")[1].replaceAll("\u0000.*", "");
+		proc=proc.substring(0, proc.length()-2);
+		FileReader read=null;
+		BufferedReader read2=null;
+		try {
+		read=new FileReader("Procesadores.txt");
+		read2=new BufferedReader(read);
+		
+		String linea=read2.readLine();
+			while (ip.equals("")&&linea!=null) {
+
+				
+				String[] fila=linea.split("#");
+				if(fila[0].charAt(0)==proc.charAt(0)){
+					host=fila[1];
+					ip=fila[2];
+				}
+				linea=read2.readLine();
+			}
+		}catch (Exception e6) {
+          	System.out.println("Error: " + e6.toString());
+		}
+
+
+		//Si pedimos informacion de un procesador que no existe
+		if(ip.equals("")){}
+
+		if(datos.length==1&&!ip.equals("")){
+			try{
+				Socket proces=new Socket(host, Integer.parseInt(ip));
+				String cadena=new String("est+"+proc+"+get");
+				OutputStream aux = proces.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+			//	esc.writeByte(2);
+				esc.writeUTF(cadena);
+				esc.writeByte(3);
+				esc.writeByte(this.pedirLRC(cadena));
+				esc.flush();
+				
+			}
+			catch (Exception e)
+			{
+				System.out.println("Error: " + e.toString());
+			}
+		}
+
+
+
+		if(datos.length==2&&!ip.equals("") ){
+			String info=datos[1].split("=")[1].replaceAll("\u0000.*", "");
+			info=info.substring(0, info.length()-2);
+			try{
+				Socket proces2=new Socket(host, Integer.parseInt(ip));
+				String cadena2=new String("est+"+ proc +"+"+info + "+set");
+				OutputStream aux = proces2.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+		//		esc.writeByte(2);
+				esc.writeUTF(cadena2);
+				esc.writeByte(3);
+				esc.writeByte(this.pedirLRC(cadena2));
+				esc.flush();
+				
+			}
+			catch (Exception e2)
+			{
+				System.out.println("Error: " + e2.toString());
+			}
+		}
+
+	}
+
+
+
+	public void minimo(Socket p_sk, String p_Datos){
+		String proc="";
+		String host="";
+		String ip="";
+		String[] datos=p_Datos.split("&");
+
+		proc=datos[0].split("=")[1].replaceAll("\u0000.*", "");
+		proc=proc.substring(0, proc.length()-2);
+		FileReader read=null;
+		BufferedReader read2=null;
+		try {
+		read=new FileReader("Procesadores.txt");
+		read2=new BufferedReader(read);
+		
+		String linea=read2.readLine();
+			while (ip.equals("")&&linea!=null) {
+
+				
+				String[] fila=linea.split("#");
+				if(fila[0].charAt(0)==proc.charAt(0)){
+					host=fila[1];
+					ip=fila[2];
+				}
+				linea=read2.readLine();
+			}
+		}catch (Exception e6) {
+          	System.out.println("Error: " + e6.toString());
+		}
+
+
+		//Si pedimos informacion de un procesador que no existe
+		if(ip.equals("")){
+			
+		}
+
+
+		//getter
+		if(datos.length==1&&!ip.equals("")){
+			try{
+				Socket proces=new Socket(host, Integer.parseInt(ip));
+				String cadena=new String("min+" + proc +"+get");
+				System.out.println(cadena.length());
+				OutputStream aux = proces.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+			//	esc.writeByte(2);
+				esc.writeUTF(cadena);
+				esc.writeByte(3);
+				esc.writeByte(this.pedirLRC(cadena));
+				esc.flush();
+				
+			}
+			catch (Exception e)
+			{
+				System.out.println("Error: " + e.toString());
+			}
+		}
+
+
+		//Setter
+		if(datos.length==2&&!ip.equals("") ){
+			String info=datos[1].split("=")[1].replaceAll("\u0000.*", "");
+			info=info.substring(0, info.length()-2);
+			try{
+				Socket proces2=new Socket(host, Integer.parseInt(ip));
+				String cadena2=new String("min+"+ proc +"+"+ info + "+set");
+				OutputStream aux = proces2.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+		//		esc.writeByte(2);
+				esc.writeUTF(cadena2);
+				esc.writeByte(3);
+				esc.writeByte(this.pedirLRC(cadena2));
+				esc.flush();
+				
+			}
+			catch (Exception e2)
+			{
+				System.out.println("Error: " + e2.toString());
+			}
+		}
+		System.out.println(host);
+		System.out.println(ip);
+	}
+
+
+
+	public void maximo(Socket p_sk, String p_Datos){
+		String proc="";
+		String host="";
+		String ip="";
+		String[] datos=p_Datos.split("&");
+
+
+		proc=datos[0].split("=")[1].replaceAll("\u0000.*", "");
+		proc=proc.substring(0, proc.length()-2);
+		FileReader read=null;
+		BufferedReader read2=null;
+		try {
+		read=new FileReader("Procesadores.txt");
+		read2=new BufferedReader(read);
+		
+		String linea=read2.readLine();
+			while (ip.equals("")&&linea!=null) {
+
+				
+				String[] fila=linea.split("#");
+				if(fila[0].charAt(0)==proc.charAt(0)){
+					host=fila[1];
+					ip=fila[2];
+				}
+				linea=read2.readLine();
+			}
+		}catch (Exception e6) {
+          	System.out.println("Error: " + e6.toString());
+		}
+
+
+		//Si pedimos informacion de un procesador que no existe
+		if(ip.equals("")){}
+
+
+		//getter
+		if(datos.length==1&&!ip.equals("")){
+			
+			try{
+				Socket proces=new Socket(host, Integer.parseInt(ip));
+				String cadena=new String("max+"+proc+"+get");
+				System.out.println(cadena.length());
+				OutputStream aux = proces.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+			//	esc.writeByte(2);
+				esc.writeUTF(cadena);
+				esc.writeByte(3);
+				esc.writeByte(this.pedirLRC(cadena));
+				esc.flush();
+				
+			}
+			catch (Exception e)
+			{
+				System.out.println("Error: " + e.toString());
+			}
+		}
+
+
+		//Setter
+		if(datos.length==2&&!ip.equals("") ){
+			String info=datos[1].split("=")[1].replaceAll("\u0000.*", "");
+			info=info.substring(0, info.length()-2);
+			try{
+				Socket proces2=new Socket(host, Integer.parseInt(ip));
+				String cadena2=new String("max+"+ proc +"+"+info + "+set");
+				OutputStream aux = proces2.getOutputStream();
+				DataOutputStream esc= new DataOutputStream(aux);
+		//		esc.writeByte(2);
+				esc.writeUTF(cadena2);
+				esc.writeByte(3);
+				esc.writeByte(this.pedirLRC(cadena2));
+				esc.flush();
+				
+			}
+			catch (Exception e2)
+			{
+				System.out.println("Error: " + e2.toString());
+			}
+		}
+	}
+
+//Para pasarle la pagina que imprima todos los datos de los procesadores
+
+	public void index(Socket p_sk, String p_Datos){
+
+
+	}
+
+
+
+	public boolean validarLRC(String petic, char val){
+		boolean ok=false;
+		byte [] binaryValue = petic.getBytes();
+		byte lrc = 0x00;
+
+		for(byte b : binaryValue) {
+
+			lrc ^= b;
+		}
+
+		// lrc msut be between 48 to 95
+		lrc %= 48; 
+		lrc += 48;
+
+		byte val2=(byte) val;
+		if(lrc==val2){
+			ok=true;
+		}
+
+
+		return ok;
+	}
+
 	
     public void run() {
 		int resultado=0;
 		String Cadena="";
-		
+		boolean todo=false;
 		
         try {
 
 			Cadena = this.leeSocket (skCliente, Cadena);
-			System.out.println(Cadena);
 
+
+			System.out.println(Cadena);
+			if(Cadena.length>3){
+				char lrc="";
+
+				String pet=Cadena.substring(1).replaceAll("\u0000.*", "").equals("");
+				lrc=pet.charAt(pet.length()-1);
+				pet=pet.substring(0,pet.length()-2);
+
+				todo=validarLRC(pet,lrc);
+
+			}
+			
+			if(todo){
+
+/*
+								try{
+									OutputStream aux = skCliente.getOutputStream();
+									DataOutputStream esc= new DataOutputStream(aux);
+									esc.writeByte(6);
+									esc.flush();
+								}
+								catch (Exception e4) {
+									System.out.println("Error: " + e4.toString());
+								}
+
+*/
 			String partes[]=Cadena.split("\\?");
 
-			System.out.println(partes[0]);
 
-			String tipo=partes[0].substring(3);
+			String tipo=partes[0].substring(1);
 
-			System.out.println(tipo);
 
 
 			if(tipo.equals("auth")){
-				boolean auto=this.autorizar(skCliente, partes[1]);
+				this.autorizar(skCliente, partes[1]);
+			}else{
+				if(tipo.equals("status")){
+					this.estado(skCliente, partes[1]);
+				}else{
+					if(tipo.equals("fl")){
+						this.minimo(skCliente, partes[1]);
+					}
+					else{
+						if(tipo.equals("ul")){
+							this.maximo(skCliente, partes[1]);
+						}
+						else{
+							if(tipo.equals("index")){
+								this.index(skCliente, partes[1]);
+							}else{
+
+								try{
+									OutputStream aux = skCliente.getOutputStream();
+									DataOutputStream esc= new DataOutputStream(aux);
+									esc.flush();
+								//	esc.writeByte(2);
+									esc.writeUTF("Peticion no permitida");
+								//	esc.writeByte(3);
+									esc.flush();
+								}
+								catch (Exception e3) {
+									System.out.println("Error: " + e3.toString());
+								}
+
+							}
+
+						}
+					}
+				}
 			}
 
-			this.escribeSocket(skCliente, Cadena);
-			/*
-			* Se escribe en pantalla la informacion que se ha recibido del
-			* cliente
-			
-
-			Cadena = "Operacion realizada con exito";
-			this.escribeSocket (skCliente, Cadena);						
-		*/	
-			
-			//skCliente.close();
-			
-			//System.exit(0); No se debe poner esta sentencia, porque en ese caso el primer cliente que cierra rompe el socket 
-			//				  y desconecta a todos				
+			}else{
+				try{
+					OutputStream aux2 = skCliente.getOutputStream();
+					DataOutputStream esc2= new DataOutputStream(aux2);
+					esc2.flush();
+				//	esc.writeByte(2);
+					esc2.writeUTF("Se ha perdido informacion");
+				//	esc.writeByte(3);
+					esc2.flush();
+				}
+				catch (Exception e3) {
+					System.out.println("Error: " + e3.toString());
+				}
+			}			
         }
         catch (Exception e) {
           System.out.println("Error: " + e.toString());

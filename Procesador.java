@@ -1,6 +1,6 @@
 import java.net.*;
 
-public class MyHTTP{
+public class Procesador {
 
 	/**
 	 * @param args
@@ -11,17 +11,17 @@ public class MyHTTP{
 		/*
 		* Descriptores de socket servidor y de socket con el cliente
 		*/
-		String puerto="9998";
+		String puerto="";
 
 		try
 		{
-			/*
+			
 			if (args.length < 1) {
 				System.out.println("Debe indicar el puerto de escucha del servidor");
 				System.out.println("$./Servidor puerto_servidor");
 				System.exit (1);
 			}
-			puerto = args[0];*/
+			puerto = args[0];
 			ServerSocket skServidor = new ServerSocket(Integer.parseInt(puerto));
 		    System.out.println("Escucho el puerto " + puerto);
 	
@@ -36,7 +36,7 @@ public class MyHTTP{
 				Socket skCliente = skServidor.accept(); // Crea objeto
 		        System.out.println("Sirviendo cliente...");
 
-		        Thread t = new Hilo_MyHTTP(skCliente);
+		        Thread t = new Hilo_Procesador(skCliente);
 		        t.start();
 			}
 		}

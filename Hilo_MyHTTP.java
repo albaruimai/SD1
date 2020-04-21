@@ -72,27 +72,57 @@ public class Hilo_MyHTTP extends Thread {
 		try
 		{
 
-			OutputStream aux = p_sk.getOutputStream();
-			PrintWriter esc= new PrintWriter(aux);
-			esc.println("HTTP/1.1 200 OK");
-			esc.println("Content-Type: text/html");
-			esc.println("\r\n");
+			FileReader read=null;
+			BufferedReader read2=null;
+			String petic=p_Datos;
+			String html="";
+			try {
+				read=new FileReader(petic);
+				read2=new BufferedReader(read);
+				
+				String linea=read2.readLine();
+					while (linea!=null) {
+						html=html.concat(linea);
+						linea=read2.readLine();
+					}
+			}catch (FileNotFoundException f) {
+				this.escribeSocket(skCliente, "404.html");
+			}
+			try {
+				OutputStream aux = skCliente.getOutputStream();
+				PrintWriter esc= new PrintWriter(aux);
+				esc.println("HTTP/1.1 200 OK");
+				esc.println("Content-Type: text/html");
+				esc.println("\r\n");
+				
+				esc.println(html);
+				esc.flush();
+				
+			}catch (Exception e8) {
+				System.out.println("Error: " + e8.toString());
+			}	
+				
+		}catch (Exception e7) {
+			System.out.println("Error: " + e7.toString());
 			
-			esc.println("<html><body><h1>Error 404</h1></body></html>");
-			esc.println(p_Datos);
-		
-			
-			esc.flush();
-
-		}
-		catch (Exception e)
-		{
-			System.out.println("Error: " + e.toString());
-		}
+		}	
 		return;
 	}
 	
-	
+	public int pedirLRC(String petic){
+		byte [] binaryValue = petic.getBytes();
+		byte lrc = 0x00;
+
+		for(byte b : binaryValue) {
+
+			lrc ^= b;
+		}
+
+		// lrc msut be between 48 to 95
+		lrc %= 48; 
+		lrc += 48;
+		return lrc;
+	}
 	
     public void run() {
 		int resultado=0;
@@ -103,56 +133,70 @@ public class Hilo_MyHTTP extends Thread {
 
 			Cadena = this.leeSocket (skCliente, Cadena);
 			System.out.println(Cadena);
-			Cadena2=Cadena;
+
+
+			
 
 				String[] trozos= Cadena.split("/");
 				String uno=trozos[1];
-				if(uno.equals("gatewaySD")){
-					try{
-						String petic=trozos[2].substring(0, trozos[2].lastIndexOf(" "));
-
-
-						byte [] binaryValue = petic.getBytes();
-						byte lrc = 0x00;
-
-						for(byte b : binaryValue) {
-
-							lrc ^= b;
-						}
-
-						// lrc msut be between 48 to 95
-						lrc %= 48; 
-						lrc += 48;
-						
-					//	out=new DataOutputStream(skCliente.getOutputStream());
-						Socket gate=new Socket("localhost", Integer.parseInt("9997"));
-						try{
-
-							OutputStream aux = gate.getOutputStream();
-							DataOutputStream esc= new DataOutputStream(aux);
-							esc.writeByte(2);
-							esc.writeUTF(petic);
-							esc.writeByte(3);
-							esc.writeByte(lrc);
-							esc.flush();
-							
-						}
-						catch (Exception e)
-						{
-							System.out.println("Error: " + e.toString());
-						}
-					
-					}
-					catch (Exception e2)
-					{
-						System.out.println("Error: " + e2.toString());
-
-					}
-				}else{
-					this.escribeSocket(skCliente, Cadena2);
+				if(!trozos[0].equals("GET ")){
+					this.escribeSocket(skCliente, "405.html");
 					skCliente.close();
+				}else{
+					if(uno.equals("gatewaySD")){
 
+
+						
+						
+						try{
+							
+
+
+							
+							
+						//	out=new DataOutputStream(skCliente.getOutputStream());
+							try{String petic=trozos[2].substring(0, trozos[2].lastIndexOf(" "));
+							Socket gate=new Socket("localhost", Integer.parseInt("9997"));
+								OutputStream aux = gate.getOutputStream();
+								DataOutputStream esc= new DataOutputStream(aux);
+								esc.writeByte(2);
+								for(int j=0;j<petic.length();j++){
+									esc.writeBytes(Character.toString(petic.charAt(j)));
+								}
+								esc.writeByte(3);
+								esc.writeByte(this.pedirLRC(petic));
+
+								esc.flush();
+
+								Cadena="";
+								System.out.println(this.leeSocket(gate, Cadena).substring(2));
+								
+							}
+							catch (Exception e)
+							{
+								System.out.println("Error: " + e.toString());
+							}
+						
+						}
+						catch (Exception e2)
+						{
+							System.out.println("Error: " + e2.toString());
+
+						}
+					}else{
+						String petic=trozos[1].substring(0, trozos[1].lastIndexOf(" "));
+						try {
+							FileReader read=new FileReader(petic);
+							escribeSocket(skCliente, petic);
+						}catch (FileNotFoundException f) {
+							this.escribeSocket(skCliente, "404.html");
+						}
+
+						skCliente.close();
+
+					}	
 				}
+				
 				
 				
 				
